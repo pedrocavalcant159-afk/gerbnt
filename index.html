@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador ABNT DEFINITIVO - Edição ES 🚀</title>
+    
+    <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #f4f7f6; --container-bg: #ffffff;
+            --text-color: #333333; --border-color: #cccccc;
+            --primary-color: #27ae60; --secondary-color: #2980b9;
+            --pdf-color: #e74c3c;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color);
+            color: var(--text-color); margin: 0; padding: 20px;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        h1 { text-align: center; margin-bottom: 20px; }
+        h3 { border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 25px; }
+
+        .main-layout { display: flex; gap: 30px; width: 100%; max-width: 1500px; flex-wrap: wrap; }
+        .editor-section, .preview-section {
+            flex: 1; min-width: 450px; background: var(--container-bg);
+            padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: flex; flex-direction: column;
+        }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .form-grid.tres-col { grid-template-columns: 1fr 1fr 1fr; }
+        .form-group.full-width { grid-column: span 2; }
+        .form-group { display: flex; flex-direction: column; }
+        .checkbox-group { flex-direction: row; align-items: center; gap: 10px; background: #eef2f5; padding: 10px; border-radius: 6px; margin-bottom: 15px;}
+        .checkbox-group label { margin-bottom: 0; cursor: pointer; font-size: 15px;}
+        
+        label { font-weight: bold; margin-bottom: 5px; font-size: 13px; color: #555; }
+        input[type="text"], select, textarea {
+            padding: 8px; border: 1px solid var(--border-color); border-radius: 6px;
+            font-size: 14px; width: 100%; box-sizing: border-box; background-color: #fff;
+        }
+
+        .toolbar { display: flex; gap: 10px; margin-bottom: 10px; background: #eef2f5; padding: 10px; border-radius: 6px; }
+        .toolbar button { background: #34495e; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold;}
+        .toolbar button:hover { background: #2c3e50; }
+        
+        textarea { flex-grow: 1; min-height: 250px; resize: vertical; font-family: monospace; }
+        .textarea-resumo { min-height: 100px; margin-bottom: 15px; }
+
+        .contadores { text-align: right; font-size: 12px; color: #7f8c8d; margin-top: 5px; font-weight: bold; }
+
+        .btn-add-ref { background: var(--secondary-color); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; margin-top: 10px; width: 100%; font-weight: bold;}
+        .lista-refs { list-style: none; padding: 0; margin-top: 15px; font-size: 13px; }
+        .lista-refs li { background: #f9f9f9; padding: 8px; border: 1px solid #eee; margin-bottom: 5px; display: flex; justify-content: space-between; border-radius: 4px;}
+        .btn-remover { color: red; cursor: pointer; border: none; background: none; font-weight: bold; }
+
+        .botoes-exportacao { display: flex; gap: 15px; margin-top: 25px; }
+        .btn-gerar, .btn-pdf { flex: 1; color: white; border: none; padding: 15px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+        .btn-gerar { background-color: var(--primary-color); }
+        .btn-pdf { background-color: var(--pdf-color); }
+
+        /* --- PREVIEW --- */
+        .preview-wrapper { background: #e0e4e8; padding: 20px; border-radius: 6px; overflow-y: auto; height: 85vh; display: flex; flex-direction: column; gap: 30px; align-items: center; }
+        .folha-a4 { background: white; width: 210mm; height: 297mm; padding: 30mm 20mm 20mm 30mm; box-shadow: 0 5px 15px rgba(0,0,0,0.2); box-sizing: border-box; font-size: 12pt; line-height: 1.5; color: black; position: relative; overflow: hidden; flex-shrink: 0; }
+        .numero-pagina { position: absolute; top: 20mm; right: 20mm; font-size: 10pt; font-family: Arial; }
+        .capa-container, .rosto-container { display: flex; flex-direction: column; height: 100%; text-align: center; font-weight: bold; text-transform: uppercase; }
+        .texto-centro { margin: auto 0; }
+        .texto-rodape { margin-top: auto; }
+        .rosto-nota { text-align: justify; text-transform: none; font-weight: normal; margin-left: 8cm; margin-top: 50px; margin-bottom: 50px; }
+        .abnt-titulo { font-weight: bold; text-transform: uppercase; margin-bottom: 1.5em; text-align: left; }
+        .abnt-paragrafo { text-indent: 1.25cm; margin-bottom: 0; text-align: justify; }
+        .abnt-citacao { margin-left: 4cm; font-size: 10pt; line-height: 1; margin-bottom: 1.5em; text-align: justify; }
+        .abnt-ref-item { margin-bottom: 1em; text-align: left; word-break: break-all;}
+    </style>
+</head>
+<body>
+
+    <h1>Gerador ABNT DEFINITIVO 🎓</h1>
+
+    <div class="main-layout">
+        
+        <div class="editor-section">
+            <h3>1. Configurações e Capa</h3>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="incluirSumario" checked onchange="atualizarPreview()">
+                <label for="incluirSumario">Gerar Sumário Automático</label>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label>Fonte do Documento</label>
+                    <select id="fonteEscolhida" onchange="atualizarPreview()"><option value="Arial">Arial</option><option value="Times New Roman">Times New Roman</option></select>
+                </div>
+                <div class="form-group full-width">
+                    <label>Instituição</label>
+                    <select id="instituicao" onchange="atualizarPreview()">
+                        <option value="">Selecione a Instituição...</option>
+                        <option value="FAESA Centro Universitário">FAESA Centro Universitário</option>
+                        <option value="Universidade Federal do Espírito Santo (UFES)">Universidade Federal do Espírito Santo (UFES)</option>
+                        <option value="Instituto Federal do Espírito Santo (IFES)">Instituto Federal do Espírito Santo (IFES)</option>
+                        <option value="Universidade Vila Velha (UVV)">Universidade Vila Velha (UVV)</option>
+                        <option value="Faculdade Multivix">Faculdade Multivix</option>
+                        <option value="Estácio de Sá">Estácio de Sá</option>
+                        <option value="FUCAPE Business School">FUCAPE Business School</option>
+                        <option value="Faculdade de Direito de Vitória (FDV)">Faculdade de Direito de Vitória (FDV)</option>
+                        <option value="Centro Universitário Salesiano (UniSales)">Centro Universitário Salesiano (UniSales)</option>
+                        <option value="Faculdade UCL">Faculdade UCL</option>
+                        <option value="Emescam">Emescam</option>
+                        <option value="Centro Universitário do Espírito Santo (UNESC)">Centro Universitário do Espírito Santo (UNESC)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Nome do Autor</label>
+                    <input type="text" id="autor" oninput="atualizarPreview()" placeholder="Pedro Cavalcante Silva">
+                </div>
+                <div class="form-group">
+                    <label>Título do Trabalho</label>
+                    <input type="text" id="titulo" oninput="atualizarPreview()" placeholder="Gigante da Colina">
+                </div>
+                <div class="form-group">
+                    <label>Cidade</label>
+                    <select id="cidade" onchange="atualizarPreview()">
+                        <option value="">Selecione a Cidade...</option>
+                        <option value="Afonso Cláudio - ES">Afonso Cláudio - ES</option><option value="Água Doce do Norte - ES">Água Doce do Norte - ES</option><option value="Águia Branca - ES">Águia Branca - ES</option><option value="Alegre - ES">Alegre - ES</option><option value="Alfredo Chaves - ES">Alfredo Chaves - ES</option><option value="Alto Rio Novo - ES">Alto Rio Novo - ES</option><option value="Anchieta - ES">Anchieta - ES</option><option value="Apiacá - ES">Apiacá - ES</option><option value="Aracruz - ES">Aracruz - ES</option><option value="Atilio Vivacqua - ES">Atilio Vivacqua - ES</option><option value="Baixo Guandu - ES">Baixo Guandu - ES</option><option value="Barra de São Francisco - ES">Barra de São Francisco - ES</option><option value="Boa Esperança - ES">Boa Esperança - ES</option><option value="Bom Jesus do Norte - ES">Bom Jesus do Norte - ES</option><option value="Brejetuba - ES">Brejetuba - ES</option><option value="Cachoeiro de Itapemirim - ES">Cachoeiro de Itapemirim - ES</option><option value="Cariacica - ES">Cariacica - ES</option><option value="Castelo - ES">Castelo - ES</option><option value="Colatina - ES">Colatina - ES</option><option value="Conceição da Barra - ES">Conceição da Barra - ES</option><option value="Conceição do Castelo - ES">Conceição do Castelo - ES</option><option value="Divino de São Lourenço - ES">Divino de São Lourenço - ES</option><option value="Domingos Martins - ES">Domingos Martins - ES</option><option value="Dores do Rio Preto - ES">Dores do Rio Preto - ES</option><option value="Ecoporanga - ES">Ecoporanga - ES</option><option value="Fundão - ES">Fundão - ES</option><option value="Governador Lindenberg - ES">Governador Lindenberg - ES</option><option value="Guaçuí - ES">Guaçuí - ES</option><option value="Guarapari - ES">Guarapari - ES</option><option value="Ibatiba - ES">Ibatiba - ES</option><option value="Ibiraçu - ES">Ibiraçu - ES</option><option value="Ibitirama - ES">Ibitirama - ES</option><option value="Iconha - ES">Iconha - ES</option><option value="Irupi - ES">Irupi - ES</option><option value="Itaguaçu - ES">Itaguaçu - ES</option><option value="Itapemirim - ES">Itapemirim - ES</option><option value="Itarana - ES">Itarana - ES</option><option value="Iúna - ES">Iúna - ES</option><option value="Jaguaré - ES">Jaguaré - ES</option><option value="Jerônimo Monteiro - ES">Jerônimo Monteiro - ES</option><option value="João Neiva - ES">João Neiva - ES</option><option value="Laranja da Terra - ES">Laranja da Terra - ES</option><option value="Linhares - ES">Linhares - ES</option><option value="Mantenópolis - ES">Mantenópolis - ES</option><option value="Marataízes - ES">Marataízes - ES</option><option value="Marechal Floriano - ES">Marechal Floriano - ES</option><option value="Marilândia - ES">Marilândia - ES</option><option value="Mimoso do Sul - ES">Mimoso do Sul - ES</option><option value="Montanha - ES">Montanha - ES</option><option value="Mucurici - ES">Mucurici - ES</option><option value="Muniz Freire - ES">Muniz Freire - ES</option><option value="Muqui - ES">Muqui - ES</option><option value="Nova Venécia - ES">Nova Venécia - ES</option><option value="Pancas - ES">Pancas - ES</option><option value="Pedro Canário - ES">Pedro Canário - ES</option><option value="Pinheiros - ES">Pinheiros - ES</option><option value="Piúma - ES">Piúma - ES</option><option value="Ponto Belo - ES">Ponto Belo - ES</option><option value="Presidente Kennedy - ES">Presidente Kennedy - ES</option><option value="Rio Bananal - ES">Rio Bananal - ES</option><option value="Rio Novo do Sul - ES">Rio Novo do Sul - ES</option><option value="Santa Leopoldina - ES">Santa Leopoldina - ES</option><option value="Santa Maria de Jetibá - ES">Santa Maria de Jetibá - ES</option><option value="Santa Teresa - ES">Santa Teresa - ES</option><option value="São Domingos do Norte - ES">São Domingos do Norte - ES</option><option value="São Gabriel da Palha - ES">São Gabriel da Palha - ES</option><option value="São José do Calçado - ES">São José do Calçado - ES</option><option value="São Mateus - ES">São Mateus - ES</option><option value="São Roque do Canaã - ES">São Roque do Canaã - ES</option><option value="Serra - ES">Serra - ES</option><option value="Sooretama - ES">Sooretama - ES</option><option value="Vargem Alta - ES">Vargem Alta - ES</option><option value="Venda Nova do Imigrante - ES">Venda Nova do Imigrante - ES</option><option value="Viana - ES">Viana - ES</option><option value="Vila Pavão - ES">Vila Pavão - ES</option><option value="Vila Valério - ES">Vila Valério - ES</option><option value="Vila Velha - ES">Vila Velha - ES</option><option value="Vitória - ES">Vitória - ES</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Ano</label>
+                    <select id="ano" onchange="atualizarPreview()">
+                        <option value="2024">2024</option>
+                        <option value="2025">2025</option>
+                        <option value="2026" selected>2026</option>
+                        <option value="2027">2027</option>
+                        <option value="2028">2028</option>
+                        <option value="2029">2029</option>
+                        <option value="2030">2030</option>
+                    </select>
+                </div>
+            </div>
+
+            <h3>2. Resumo e Corpo do Texto</h3>
+            <label>Resumo na língua vernácula (Opcional):</label>
+            <textarea id="textoResumo" class="textarea-resumo" oninput="atualizarTudo()" placeholder="Digite o resumo do seu trabalho aqui..."></textarea>
+
+            <div class="toolbar">
+                <button onclick="inserirTag('# ')">📌 Inserir Título</button>
+                <button onclick="inserirTag('> ')">💬 Inserir Citação Longa (4cm)</button>
+            </div>
+            <textarea id="textoEntrada" oninput="atualizarTudo()" placeholder="Escreva seu texto principal aqui... Comece com '# INTRODUÇÃO'"></textarea>
+            <div id="infoTexto" class="contadores">0 palavras | 0 caracteres | 0 min de leitura</div>
+
+            <h3>3. Referências Bibliográficas</h3>
+            <div class="form-grid tres-col">
+                <div class="form-group"><label>Sobrenome, Nome</label><input type="text" id="refAutor" placeholder="Ex: SILVA, João"></div>
+                <div class="form-group"><label>Título da Obra</label><input type="text" id="refTitulo" placeholder="Ex: A história da IA"></div>
+                <div class="form-group"><label>Ano</label><input type="text" id="refAno" placeholder="Ex: 2026"></div>
+                <div class="form-group"><label>Cidade</label><input type="text" id="refCidade" placeholder="Ex: Vitória"></div>
+                <div class="form-group"><label>Editora / Revista</label><input type="text" id="refEditora" placeholder="Ex: Editora ES"></div>
+                <div class="form-group"><label>Link / URL (Opcional)</label><input type="text" id="refLink" placeholder="https://..."></div>
+            </div>
+            <button class="btn-add-ref" onclick="adicionarReferencia()">➕ Adicionar à Bibliografia</button>
+            <ul id="listaReferencias" class="lista-refs"></ul>
+
+            <div class="botoes-exportacao">
+                <button class="btn-gerar" onclick="gerarDocumento()">📥 Baixar DOCX (Word)</button>
+                <button class="btn-pdf" onclick="gerarPDF()">📥 Baixar PDF Final</button>
+            </div>
+        </div>
+
+        <div class="preview-section">
+            <h3>Pré-visualização do Documento</h3>
+            <div class="preview-wrapper" id="scrollPreview">
+                <div id="areaPreview" style="display: flex; flex-direction: column; gap: 30px; align-items: center; width: 100%;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let bibliografia = [];
+        let contagemPaginas = 1;
+
+        // INICIALIZAÇÃO E AUTO-SAVE
+        window.onload = function() {
+            if(localStorage.getItem("abntDadosES")) {
+                const d = JSON.parse(localStorage.getItem("abntDadosES"));
+                document.getElementById("fonteEscolhida").value = d.fonte || "Arial";
+                document.getElementById("incluirSumario").checked = d.sumario !== undefined ? d.sumario : true;
+                document.getElementById("instituicao").value = d.instituicao || "";
+                document.getElementById("autor").value = d.autor || "";
+                document.getElementById("titulo").value = d.titulo || "";
+                document.getElementById("cidade").value = d.cidade || "";
+                document.getElementById("ano").value = d.ano || "2026";
+                document.getElementById("textoResumo").value = d.resumo || "";
+                document.getElementById("textoEntrada").value = d.texto || "";
+                bibliografia = d.bibliografia || [];
+            }
+            renderizarReferencias();
+            atualizarTudo();
+        };
+
+        function atualizarTudo() {
+            salvarDados();
+            atualizarContadores();
+            atualizarPreview();
+        }
+
+        function salvarDados() {
+            localStorage.setItem("abntDadosES", JSON.stringify({
+                fonte: document.getElementById("fonteEscolhida").value,
+                sumario: document.getElementById("incluirSumario").checked,
+                instituicao: document.getElementById("instituicao").value,
+                autor: document.getElementById("autor").value,
+                titulo: document.getElementById("titulo").value,
+                cidade: document.getElementById("cidade").value,
+                ano: document.getElementById("ano").value,
+                resumo: document.getElementById("textoResumo").value,
+                texto: document.getElementById("textoEntrada").value,
+                bibliografia: bibliografia
+            }));
+        }
+
+        // FERRAMENTAS DO TEXTO
+        function inserirTag(tag) {
+            const textarea = document.getElementById("textoEntrada");
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            textarea.value = textarea.value.substring(0, start) + tag + textarea.value.substring(end);
+            textarea.focus(); textarea.selectionEnd = start + tag.length;
+            atualizarTudo();
+        }
+
+        function atualizarContadores() {
+            const txt = document.getElementById("textoEntrada").value + " " + document.getElementById("textoResumo").value;
+            const caracteres = txt.length;
+            const palavras = txt.trim() === "" ? 0 : txt.trim().split(/\s+/).length;
+            const tempo = Math.max(1, Math.ceil(palavras / 250));
+            document.getElementById("infoTexto").innerText = `${palavras} palavras | ${caracteres} caracteres | ~${tempo} min de leitura`;
+        }
+
+        // GERENCIADOR DE REFERÊNCIAS
+        function adicionarReferencia() {
+            const autor = document.getElementById("refAutor").value.toUpperCase();
+            const titulo = document.getElementById("refTitulo").value;
+            const ano = document.getElementById("refAno").value;
+            const cidade = document.getElementById("refCidade").value;
+            const editora = document.getElementById("refEditora").value;
+            const link = document.getElementById("refLink").value.trim();
+
+            if(!autor || !titulo) return alert("Autor e Título são obrigatórios!");
+
+            let textoRef = `${autor}. <b>${titulo}</b>. ${cidade}: ${editora}, ${ano}.`;
+            
+            // Lógica do Link ABNT
+            if (link !== "") {
+                const dataAtual = new Date();
+                const meses = ["jan.", "fev.", "mar.", "abr.", "mai.", "jun.", "jul.", "ago.", "set.", "out.", "nov.", "dez."];
+                const dataFormatada = `${dataAtual.getDate()} ${meses[dataAtual.getMonth()]} ${dataAtual.getFullYear()}`;
+                textoRef += ` Disponível em: &lt;${link}&gt;. Acesso em: ${dataFormatada}.`;
+            }
+
+            bibliografia.push(textoRef);
+            bibliografia.sort(); 
+            
+            document.getElementById("refAutor").value = ""; document.getElementById("refTitulo").value = "";
+            document.getElementById("refAno").value = ""; document.getElementById("refCidade").value = ""; 
+            document.getElementById("refEditora").value = ""; document.getElementById("refLink").value = "";
+            renderizarReferencias(); atualizarTudo();
+        }
+
+        function removerReferencia(index) { bibliografia.splice(index, 1); renderizarReferencias(); atualizarTudo(); }
+
+        function renderizarReferencias() {
+            const lista = document.getElementById("listaReferencias"); lista.innerHTML = "";
+            bibliografia.forEach((ref, index) => {
+                lista.innerHTML += `<li><span style="flex-grow:1">${ref}</span> <button class="btn-remover" onclick="removerReferencia(${index})">X</button></li>`;
+            });
+        }
+
+        // ==========================================
+        // PREVIEW E PAGINAÇÃO VISUAL
+        // ==========================================
+        function atualizarPreview() {
+            const area = document.getElementById("areaPreview"); area.innerHTML = "";
+            const fonte = document.getElementById("fonteEscolhida").value;
+            const gerarSumario = document.getElementById("incluirSumario").checked;
+            const resumo = document.getElementById("textoResumo").value.trim();
+            const d = { 
+                inst: document.getElementById("instituicao").value || "NOME DA INSTITUIÇÃO", 
+                autor: document.getElementById("autor").value || "NOME DO AUTOR", 
+                tit: document.getElementById("titulo").value || "TÍTULO DO TRABALHO", 
+                cid: document.getElementById("cidade").value || "CIDADE - ES", 
+                ano: document.getElementById("ano").value || "ANO" 
+            };
+            contagemPaginas = 1;
+
+            area.appendChild(criarFolha(fonte, `<div class="capa-container"><div>${d.inst}</div><div style="margin-top: 20px;">${d.autor}</div><div class="texto-centro">${d.tit}</div><div class="texto-rodape">${d.cid}<br>${d.ano}</div></div>`, false));
+            area.appendChild(criarFolha(fonte, `<div class="rosto-container"><div>${d.autor}</div><div class="texto-centro">${d.tit}<div class="rosto-nota">Trabalho acadêmico apresentado como requisito parcial para obtenção de nota.</div></div><div class="texto-rodape">${d.cid}<br>${d.ano}</div></div>`, false));
+
+            if (resumo !== "") {
+                area.appendChild(criarFolha(fonte, `<div class="abnt-titulo" style="text-align:center; margin-bottom: 40px;">RESUMO</div><div class="abnt-paragrafo" style="text-indent: 0;">${resumo}</div>`, true));
+            }
+
+            const linhasTexto = document.getElementById("textoEntrada").value.split('\n');
+            let titulosSumario = linhasTexto.filter(l => l.trim().startsWith("# ")).map(l => l.replace("# ", "").toUpperCase());
+            
+            if(gerarSumario && titulosSumario.length > 0) {
+                let htmlSumario = `<div class="abnt-titulo" style="text-align:center; margin-bottom: 50px;">SUMÁRIO</div>`;
+                titulosSumario.forEach(t => htmlSumario += `<div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span>${t}</span><span>...</span></div>`);
+                area.appendChild(criarFolha(fonte, htmlSumario, false));
+            }
+
+            let folhaAtual = criarFolha(fonte, "", true);
+            let linhasUsadas = 0;
+
+            linhasTexto.forEach(linha => {
+                const txt = linha.trim(); if(txt === "") return;
+                let peso = 1 + Math.floor(txt.length / 85);
+                if (txt.startsWith("# ")) peso += 2;
+                if (txt.startsWith("> ")) peso += 1;
+
+                if (linhasUsadas + peso > 36) {
+                    area.appendChild(folhaAtual);
+                    folhaAtual = criarFolha(fonte, "", true);
+                    linhasUsadas = 0;
+                }
+
+                const p = document.createElement("div");
+                if (txt.startsWith("# ")) { p.className = "abnt-titulo"; p.innerText = txt.replace("# ", ""); } 
+                else if (txt.startsWith("> ")) { p.className = "abnt-citacao"; p.innerText = txt.replace("> ", ""); } 
+                else { p.className = "abnt-paragrafo"; p.innerText = txt; }
+                
+                folhaAtual.appendChild(p); linhasUsadas += peso;
+            });
+            if(folhaAtual.childNodes.length > 1) area.appendChild(folhaAtual);
+
+            if(bibliografia.length > 0) {
+                let htmlRef = `<div class="abnt-titulo" style="text-align:center; margin-bottom: 40px;">REFERÊNCIAS</div>`;
+                bibliografia.forEach(ref => htmlRef += `<div class="abnt-ref-item">${ref}</div>`);
+                area.appendChild(criarFolha(fonte, htmlRef, true));
+            }
+        }
+
+        function criarFolha(fonte, conteudoHTML, mostrarNumero) {
+            const f = document.createElement("div"); f.className = "folha-a4"; f.style.fontFamily = fonte;
+            if(mostrarNumero) { f.innerHTML = `<div class="numero-pagina">${contagemPaginas}</div>`; }
+            f.innerHTML += conteudoHTML; contagemPaginas++;
+            return f;
+        }
+
+        // ==========================================
+        // EXPORTAÇÃO
+        // ==========================================
+        function gerarPDF() {
+            const areaPreview = document.getElementById('areaPreview');
+            const titulo = document.getElementById("titulo").value || "Trabalho";
+            const opt = { margin: 0, filename: `${titulo}_ABNT.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true, windowWidth: 800 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+            html2pdf().set(opt).from(areaPreview).save();
+        }
+
+        async function gerarDocumento() {
+            const fonte = document.getElementById("fonteEscolhida").value;
+            const gerarSumario = document.getElementById("incluirSumario").checked;
+            const txtTitulo = document.getElementById("titulo").value.toUpperCase() || "TRABALHO";
+            const resumo = document.getElementById("textoResumo").value.trim();
+            
+            const doc = new docx.Document({
+                features: { updateFields: true },
+                styles: { default: { heading1: { run: { size: 24, bold: true, color: "000000", font: fonte }, paragraph: { spacing: { before: 240, after: 240 }, alignment: docx.AlignmentType.LEFT } } } },
+                sections: [
+                    { properties: { page: { margin: { top: "3cm", left: "3cm", bottom: "2cm", right: "2cm" } } }, children: gerarElementosCapaRosto(fonte) },
+                    { properties: { page: { margin: { top: "3cm", left: "3cm", bottom: "2cm", right: "2cm" }, pageNumbers: { start: resumo !== "" ? 3 : 3, formatType: docx.NumberFormat.DECIMAL } } }, headers: { default: new docx.Header({ children: [new docx.Paragraph({ children: [new docx.TextRun({ children: [docx.PageNumber.CURRENT], size: 20, font: fonte })], alignment: docx.AlignmentType.RIGHT })] }) }, children: gerarElementosTextoRefs(fonte, gerarSumario, resumo) }
+                ]
+            });
+
+            const blob = await docx.Packer.toBlob(doc);
+            saveAs(blob, `${txtTitulo}_ABNT.docx`);
+        }
+
+        function pularLinhas(qtd) { let l = []; for (let i=0; i<qtd; i++) l.push(new docx.Paragraph({ text: "" })); return l; }
+
+        function gerarElementosCapaRosto(f) {
+            const inst = document.getElementById("instituicao").value.toUpperCase() || "NOME DA INSTITUIÇÃO"; 
+            const aut = document.getElementById("autor").value.toUpperCase() || "NOME DO AUTOR";
+            const tit = document.getElementById("titulo").value.toUpperCase() || "TÍTULO DO TRABALHO"; 
+            const cid = document.getElementById("cidade").value || "CIDADE - ES"; 
+            const ano = document.getElementById("ano").value || "ANO";
+            return [
+                new docx.Paragraph({ children: [new docx.TextRun({ text: inst, font: f, size: 24, bold: true })], alignment: docx.AlignmentType.CENTER }),
+                ...pularLinhas(2), new docx.Paragraph({ children: [new docx.TextRun({ text: aut, font: f, size: 24, bold: true })], alignment: docx.AlignmentType.CENTER }),
+                ...pularLinhas(10), new docx.Paragraph({ children: [new docx.TextRun({ text: tit, font: f, size: 24, bold: true })], alignment: docx.AlignmentType.CENTER }),
+                ...pularLinhas(12), new docx.Paragraph({ children: [new docx.TextRun({ text: cid, font: f, size: 24, bold: true })], alignment: docx.AlignmentType.CENTER }),
+                new docx.Paragraph({ children: [new docx.TextRun({ text: ano, font: f, size: 24, bold: true })], alignment: docx.AlignmentType.CENTER }),
+                new docx.Paragraph({ children: [new docx.TextRun({ text: aut, font: f, size: 24, bold: true })], alignment: docx.AlignmentType.CENTER, pageBreakBefore: true }),
+                ...pularLinhas(10), new docx.Paragraph({ children: [new docx.TextRun({ text: tit, font: f, size: 24, bold: true })], alignment: docx.AlignmentType.CENTER }),
+                ...pularLinhas(3), new docx.Paragraph({ children: [new docx.TextRun({ text: "Trabalho acadêmico apresentado como requisito parcial para obtenção de nota.", font: f, size: 24 })], indent: { left: "8cm" }, alignment: docx.AlignmentType.JUSTIFIED }),
+                ...pularLinhas(8), new docx.Paragraph({ children: [new docx.TextRun({ text: cid, font: f, size: 24, bold: true })], alignment: docx.AlignmentType.CENTER }),
+                new docx.Paragraph({ children: [new docx.TextRun({ text: ano, font: f, size: 24, bold: true })], alignment: docx.AlignmentType.CENTER })
+            ];
+        }
+
+        function gerarElementosTextoRefs(f, comSumario, resumo) {
+            const texto = document.getElementById("textoEntrada").value.split('\n');
+            let elementos = [];
+            let quebrarPagina = false;
+
+            if (resumo !== "") {
+                elementos.push(new docx.Paragraph({ children: [new docx.TextRun({ text: "RESUMO", font: f, size: 24, bold: true })], alignment: docx.AlignmentType.CENTER, spacing: { after: 480 } })); 
+                elementos.push(new docx.Paragraph({ children: [new docx.TextRun({ text: resumo, font: f, size: 24 })], alignment: docx.AlignmentType.JUSTIFIED }));
+                quebrarPagina = true; 
+            }
+
+            if (comSumario) {
+                elementos.push(new docx.Paragraph({ children: [new docx.TextRun({ text: "SUMÁRIO", font: f, size: 24, bold: true })], alignment: docx.AlignmentType.CENTER, pageBreakBefore: quebrarPagina, spacing: { after: 480 } }));
+                elementos.push(new docx.TableOfContents("Sumário Automático", { hyperlink: true, headingStyleRange: "1-1" }));
+                quebrarPagina = true;
+            }
+            
+            texto.forEach(linha => {
+                const txt = linha.trim(); if (txt === "") return;
+                if (txt.startsWith("# ")) {
+                    elementos.push(new docx.Paragraph({ text: txt.replace("# ", "").toUpperCase(), heading: docx.HeadingLevel.HEADING_1, pageBreakBefore: quebrarPagina }));
+                    quebrarPagina = false;
+                } else if (txt.startsWith("> ")) {
+                    elementos.push(new docx.Paragraph({ children: [new docx.TextRun({ text: txt.replace("> ", ""), font: f, size: 20 })], indent: { left: "4cm" }, spacing: { line: 240, after: 240 }, alignment: docx.AlignmentType.JUSTIFIED, pageBreakBefore: quebrarPagina }));
+                    quebrarPagina = false;
+                } else {
+                    elementos.push(new docx.Paragraph({ children: [new docx.TextRun({ text: txt, font: f, size: 24 })], indent: { firstLine: "1.25cm" }, spacing: { line: 360, after: 120 }, alignment: docx.AlignmentType.JUSTIFIED, pageBreakBefore: quebrarPagina }));
+                    quebrarPagina = false;
+                }
+            });
+
+            if(bibliografia.length > 0) {
+                elementos.push(new docx.Paragraph({ children: [new docx.TextRun({ text: "REFERÊNCIAS", font: f, size: 24, bold: true })], alignment: docx.AlignmentType.CENTER, pageBreakBefore: true, spacing: { after: 480 } }));
+                bibliografia.forEach(ref => {
+                    const limpo = ref.replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+                    const partes = limpo.split("<b>"); const autor = partes[0];
+                    const partes2 = partes[1].split("</b>"); const titulo = partes2[0]; const resto = partes2[1];
+                    elementos.push(new docx.Paragraph({
+                        children: [ new docx.TextRun({ text: autor, font: f, size: 24 }), new docx.TextRun({ text: titulo, font: f, size: 24, bold: true }), new docx.TextRun({ text: resto, font: f, size: 24 }) ],
+                        alignment: docx.AlignmentType.LEFT, spacing: { line: 240, after: 240 }
+                    }));
+                });
+            }
+            return elementos;
+        }
+    </script>
+</body>
+</html>
