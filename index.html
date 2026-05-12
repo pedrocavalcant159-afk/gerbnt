@@ -382,6 +382,19 @@
 
   <div class="main-layout">
     <section class="editor-section">
+      <h3>0. Colar texto pronto</h3>
+
+      <div class="form-group">
+        <label>Cole aqui o artigo completo</label>
+        <textarea id="textoBruto" style="min-height: 220px;" placeholder="Cole aqui o texto completo do Word, PDF ou bloco de notas. Depois clique em Organizar texto automaticamente."></textarea>
+        <div class="hint">O sistema tenta identificar: título em português, título em inglês, autores, qualificação, resumo, palavras-chave, abstract, keywords, corpo do texto e referências.</div>
+      </div>
+
+      <div class="toolbar">
+        <button type="button" onclick="organizarTextoColado()">Organizar texto automaticamente</button>
+        <button type="button" onclick="limparCampos()">Limpar campos</button>
+      </div>
+
       <h3>1. Dados iniciais</h3>
 
       <div class="form-grid">
@@ -566,6 +579,113 @@
       } catch (e) {
         console.warn("Não foi possível carregar os dados salvos.", e);
       }
+    }
+
+    function organizarTextoColado() {
+      const bruto = get("textoBruto").value.trim();
+      if (!bruto) {
+        alert("Cole o texto completo primeiro.");
+        return;
+      }
+
+      const quebra = String.fromCharCode(10);
+      const linhasOriginais = bruto
+        .split(String.fromCharCode(13)).join("")
+        .split(quebra)
+        .map(l => l.trim())
+        .filter(Boolean);
+
+      function normalizarLinha(linha) {
+        return linha.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+      }
+
+      function indicePorTexto(texto) {
+        return linhasOriginais.findIndex(l => normalizarLinha(l) === texto);
+      }
+
+      function indiceComecaCom(texto) {
+        return linhasOriginais.findIndex(l => normalizarLinha(l).startsWith(texto));
+      }
+
+      const idxResumo = indicePorTexto("resumo");
+      const idxPalavras = indiceComecaCom("palavras-chave:") >= 0 ? indiceComecaCom("palavras-chave:") : indiceComecaCom("palavras chave:");
+      const idxAbstract = indicePorTexto("abstract");
+      const idxKeywords = indiceComecaCom("keywords:");
+      const idxRefs = indicePorTexto("referencias");
+
+      const antesResumo = idxResumo >= 0 ? linhasOriginais.slice(0, idxResumo) : [];
+
+      if (antesResumo[0]) get("tituloPt").value = antesResumo[0];
+      if (antesResumo[1]) get("tituloEn").value = antesResumo[1];
+
+      const possiveisAutores = [];
+      const possiveisQualificacoes = [];
+
+      for (let i = 2; i < antesResumo.length; i++) {
+        const linha = antesResumo[i];
+        const linhaNormal = normalizarLinha(linha);
+        const pareceEmail = linha.includes("@");
+        const pareceQualificacao = linhaNormal.includes("graduand") || linhaNormal.includes("graduac") || linhaNormal.includes("prof") || linhaNormal.includes("msc") || linhaNormal.includes("esp") || linhaNormal.includes("faesa") || linhaNormal.includes("faculdade") || linhaNormal.includes("orientador");
+        const letras = linha.replace(/[^A-Za-zÀ-ÿ]/g, "");
+        const pareceAutor = letras.length > 6 && linha === linha.toUpperCase() && !pareceEmail;
+
+        if (pareceAutor) possiveisAutores.push(linha);
+        else if (!pareceEmail && pareceQualificacao) possiveisQualificacoes.push(linha);
+      }
+
+      if (possiveisAutores.length) get("autores").value = possiveisAutores.join(quebra);
+      if (possiveisQualificacoes.length) get("qualificacao").value = possiveisQualificacoes.join(quebra);
+
+      if (idxResumo >= 0 && idxPalavras > idxResumo) {
+        get("resumo").value = linhasOriginais.slice(idxResumo + 1, idxPalavras).join(" ");
+      }
+
+      if (idxPalavras >= 0) {
+        const linha = linhasOriginais[idxPalavras];
+        get("palavrasChave").value = linha.includes(":") ? linha.substring(linha.indexOf(":") + 1).trim() : linha;
+      }
+
+      if (idxAbstract >= 0 && idxKeywords > idxAbstract) {
+        get("abstractTxt").value = linhasOriginais.slice(idxAbstract + 1, idxKeywords).join(" ");
+      }
+
+      if (idxKeywords >= 0) {
+        const linha = linhasOriginais[idxKeywords];
+        get("keywords").value = linha.includes(":") ? linha.substring(linha.indexOf(":") + 1).trim() : linha;
+      }
+
+      const inicioCorpo = idxKeywords >= 0 ? idxKeywords + 1 : (idxPalavras >= 0 ? idxPalavras + 1 : 0);
+      const fimCorpo = idxRefs >= 0 ? idxRefs : linhasOriginais.length;
+      const corpoLinhas = linhasOriginais.slice(inicioCorpo, fimCorpo).filter(l => !normalizarLinha(l).startsWith("keywords:"));
+
+      const corpoFormatado = corpoLinhas.map(linha => {
+        let semNumero = linha.trim();
+        while (semNumero.length && "0123456789. ".includes(semNumero[0])) semNumero = semNumero.substring(1).trim();
+        const letras = semNumero.replace(/[^A-Za-zÀ-ÿ]/g, "");
+        const pareceTitulo = semNumero.length < 80 && letras.length > 2 && semNumero === semNumero.toUpperCase() && !semNumero.endsWith(".") && !semNumero.endsWith("!") && !semNumero.endsWith("?");
+        if (pareceTitulo) return "# " + semNumero;
+        return semNumero;
+      }).join(quebra + quebra);
+
+      get("corpoTexto").value = corpoFormatado;
+
+      bibliografia = [];
+      if (idxRefs >= 0) {
+        const refs = linhasOriginais.slice(idxRefs + 1).filter(Boolean);
+        bibliografia = refs.map(ref => escaparHTML(ref)).sort((a, b) => a.localeCompare(b, "pt-BR"));
+        renderizarReferencias();
+      }
+
+      atualizarTudo();
+      alert("Texto organizado. Confira a pré-visualização e ajuste manualmente se precisar.");
+    }
+
+    function limparCampos() {
+      if (!confirm("Tem certeza que deseja limpar todos os campos?")) return;
+      ["textoBruto", "tituloPt", "tituloEn", "autores", "qualificacao", "resumo", "palavrasChave", "abstractTxt", "keywords", "corpoTexto"].forEach(id => get(id).value = "");
+      bibliografia = [];
+      renderizarReferencias();
+      atualizarTudo();
     }
 
     function inserirTag(tag) {
