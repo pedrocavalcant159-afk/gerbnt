@@ -618,23 +618,12 @@
       if (antesResumo[0]) get("tituloPt").value = antesResumo[0];
       if (antesResumo[1]) get("tituloEn").value = antesResumo[1];
 
-      const possiveisAutores = [];
-      const possiveisQualificacoes = [];
+      const blocoAutores = antesResumo.slice(2).filter(linha => linha && linha !== "|");
 
-      for (let i = 2; i < antesResumo.length; i++) {
-        const linha = antesResumo[i];
-        const linhaNormal = normalizarLinha(linha);
-        const pareceEmail = linha.includes("@");
-        const pareceQualificacao = linhaNormal.includes("graduand") || linhaNormal.includes("graduac") || linhaNormal.includes("prof") || linhaNormal.includes("msc") || linhaNormal.includes("esp") || linhaNormal.includes("faesa") || linhaNormal.includes("faculdade") || linhaNormal.includes("orientador");
-        const letras = linha.replace(/[^A-Za-zÀ-ÿ]/g, "");
-        const pareceAutor = letras.length > 6 && linha === linha.toUpperCase() && !pareceEmail;
-
-        if (pareceAutor) possiveisAutores.push(linha);
-        else if (!pareceEmail && pareceQualificacao) possiveisQualificacoes.push(linha);
+      if (blocoAutores.length) {
+        get("autores").value = blocoAutores.join(quebra);
+        get("qualificacao").value = "";
       }
-
-      if (possiveisAutores.length) get("autores").value = possiveisAutores.join(quebra);
-      if (possiveisQualificacoes.length) get("qualificacao").value = possiveisQualificacoes.join(quebra);
 
       if (idxResumo >= 0 && idxPalavras > idxResumo) {
         get("resumo").value = linhasOriginais.slice(idxResumo + 1, idxPalavras).join(" ");
@@ -707,9 +696,19 @@
     }
 
     function obterAutoresOrdenados() {
-      return linhasNaoVazias(get("autores").value)
-        .map(a => a.toUpperCase())
-        .sort((a, b) => a.localeCompare(b, "pt-BR"));
+      return linhasNaoVazias(get("autores").value);
+    }
+
+    function linhaEhNomeAutor(linha) {
+      const texto = String(linha || "").trim();
+      const letras = texto.replace(/[^A-Za-zÀ-ÿ]/g, "");
+      return letras.length > 6 && texto === texto.toUpperCase() && !texto.includes("@");
+    }
+
+    function obterBlocoAutores() {
+      const linhasAutores = linhasNaoVazias(get("autores").value);
+      const linhasQualificacaoExtra = linhasNaoVazias(get("qualificacao").value);
+      return [...linhasAutores, ...linhasQualificacaoExtra];
     }
 
     function atualizarContadores() {
@@ -750,6 +749,7 @@
       const tituloPt = get("tituloPt").value.trim() || "TÍTULO EM PORTUGUÊS";
       const tituloEn = get("tituloEn").value.trim() || "TITLE IN ENGLISH";
       const autores = obterAutoresOrdenados();
+      const blocoAutores = obterBlocoAutores();
       const qualificacoes = linhasNaoVazias(get("qualificacao").value);
       const resumo = get("resumo").value.trim();
       const palavras = normalizarPalavras(get("palavrasChave").value);
@@ -761,15 +761,16 @@
       html += `<div class="artigo-titulo-pt">${escaparHTML(tituloPt)}</div>`;
       html += `<div class="artigo-titulo-en">${escaparHTML(tituloEn)}</div>`;
 
-      if (autores.length > 0) {
-        html += autores.map(a => `<div class="artigo-autores">${escaparHTML(a)}</div>`).join("");
+      if (blocoAutores.length > 0) {
+        blocoAutores.forEach(linha => {
+          if (linhaEhNomeAutor(linha)) {
+            html += `<div class="artigo-autores">${escaparHTML(linha)}</div>`;
+          } else {
+            html += `<div class="artigo-qualificacao">${escaparHTML(linha)}</div>`;
+          }
+        });
       } else {
         html += `<div class="artigo-autores">NOME DO AUTOR</div>`;
-      }
-
-      if (qualificacoes.length > 0) {
-        html += qualificacoes.map(q => `<div class="artigo-qualificacao">${escaparHTML(q)}</div>`).join("");
-      } else {
         html += `<div class="artigo-qualificacao">Qualificação do autor.</div>`;
       }
 
@@ -902,6 +903,7 @@
       const tituloPt = get("tituloPt").value.trim() || "TÍTULO EM PORTUGUÊS";
       const tituloEn = get("tituloEn").value.trim() || "TITLE IN ENGLISH";
       const autores = obterAutoresOrdenados();
+      const blocoAutores = obterBlocoAutores();
       const qualificacoes = linhasNaoVazias(get("qualificacao").value);
       const resumo = get("resumo").value.trim() || "Digite o resumo do artigo em parágrafo único.";
       const palavras = normalizarPalavras(get("palavrasChave").value) || "Palavra 1. Palavra 2. Palavra 3.";
@@ -926,20 +928,20 @@
         spacing: { line: 360, after: 240 }
       }));
 
-      (autores.length ? autores : ["NOME DO AUTOR"]).forEach(autor => {
-        elementos.push(paragrafoTexto(autor.toUpperCase(), fonte, {
-          size: 24,
-          alignment: docx.AlignmentType.RIGHT,
-          spacing: { line: 360, after: 0 }
-        }));
-      });
-
-      (qualificacoes.length ? qualificacoes : ["Qualificação do autor."]).forEach(q => {
-        elementos.push(paragrafoTexto(q, fonte, {
-          size: 22,
-          alignment: docx.AlignmentType.RIGHT,
-          spacing: { line: 240, after: 0 }
-        }));
+      (blocoAutores.length ? blocoAutores : ["NOME DO AUTOR", "Qualificação do autor."]).forEach(linha => {
+        if (linhaEhNomeAutor(linha)) {
+          elementos.push(paragrafoTexto(linha.toUpperCase(), fonte, {
+            size: 24,
+            alignment: docx.AlignmentType.RIGHT,
+            spacing: { line: 360, after: 0 }
+          }));
+        } else {
+          elementos.push(paragrafoTexto(linha, fonte, {
+            size: 22,
+            alignment: docx.AlignmentType.RIGHT,
+            spacing: { line: 240, after: 0 }
+          }));
+        }
       });
 
       elementos.push(paragrafoTexto("RESUMO", fonte, {
