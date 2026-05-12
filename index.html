@@ -706,9 +706,51 @@
     }
 
     function obterBlocoAutores() {
+      const bruto = get("textoBruto") ? get("textoBruto").value.trim() : "";
+
+      if (bruto) {
+        const quebra = String.fromCharCode(10);
+        const linhas = bruto
+          .split(String.fromCharCode(13)).join("")
+          .split(quebra)
+          .map(l => l.trim())
+          .filter(Boolean);
+
+        const normalizar = txt => txt.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+        const idxResumo = linhas.findIndex(l => normalizar(l) === "resumo");
+
+        if (idxResumo > 2) {
+          return linhas.slice(2, idxResumo).filter(l => l && l !== "|");
+        }
+      }
+
       const linhasAutores = linhasNaoVazias(get("autores").value);
       const linhasQualificacaoExtra = linhasNaoVazias(get("qualificacao").value);
       return [...linhasAutores, ...linhasQualificacaoExtra];
+    }
+
+    function organizarBlocoAutoresParaExibicao(bloco) {
+      const grupos = [];
+      let atual = null;
+
+      bloco.forEach(linha => {
+        if (linhaEhNomeAutor(linha)) {
+          atual = { nome: linha, dados: [] };
+          grupos.push(atual);
+        } else if (atual) {
+          atual.dados.push(linha);
+        }
+      });
+
+      if (grupos.length === 0) return bloco.map(linha => ({ tipo: linhaEhNomeAutor(linha) ? "autor" : "qualificacao", texto: linha }));
+
+      const resultado = [];
+      grupos.forEach((grupo, index) => {
+        if (index > 0) resultado.push({ tipo: "espaco", texto: "" });
+        resultado.push({ tipo: "autor", texto: grupo.nome });
+        grupo.dados.forEach(dado => resultado.push({ tipo: "qualificacao", texto: dado }));
+      });
+      return resultado;
     }
 
     function atualizarContadores() {
@@ -762,11 +804,13 @@
       html += `<div class="artigo-titulo-en">${escaparHTML(tituloEn)}</div>`;
 
       if (blocoAutores.length > 0) {
-        blocoAutores.forEach(linha => {
-          if (linhaEhNomeAutor(linha)) {
-            html += `<div class="artigo-autores">${escaparHTML(linha)}</div>`;
+        organizarBlocoAutoresParaExibicao(blocoAutores).forEach(item => {
+          if (item.tipo === "espaco") {
+            html += `<div style="height: 12pt;"></div>`;
+          } else if (item.tipo === "autor") {
+            html += `<div class="artigo-autores">${escaparHTML(item.texto)}</div>`;
           } else {
-            html += `<div class="artigo-qualificacao">${escaparHTML(linha)}</div>`;
+            html += `<div class="artigo-qualificacao">${escaparHTML(item.texto)}</div>`;
           }
         });
       } else {
@@ -928,15 +972,17 @@
         spacing: { line: 360, after: 240 }
       }));
 
-      (blocoAutores.length ? blocoAutores : ["NOME DO AUTOR", "Qualificação do autor."]).forEach(linha => {
-        if (linhaEhNomeAutor(linha)) {
-          elementos.push(paragrafoTexto(linha.toUpperCase(), fonte, {
+      organizarBlocoAutoresParaExibicao(blocoAutores.length ? blocoAutores : ["NOME DO AUTOR", "Qualificação do autor."]).forEach(item => {
+        if (item.tipo === "espaco") {
+          elementos.push(new docx.Paragraph({ text: "", spacing: { after: 120 } }));
+        } else if (item.tipo === "autor") {
+          elementos.push(paragrafoTexto(item.texto.toUpperCase(), fonte, {
             size: 24,
             alignment: docx.AlignmentType.RIGHT,
             spacing: { line: 360, after: 0 }
           }));
         } else {
-          elementos.push(paragrafoTexto(linha, fonte, {
+          elementos.push(paragrafoTexto(item.texto, fonte, {
             size: 22,
             alignment: docx.AlignmentType.RIGHT,
             spacing: { line: 240, after: 0 }
